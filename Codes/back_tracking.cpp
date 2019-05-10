@@ -3,7 +3,9 @@
 
 using namespace std;
 
-int nrOfSolutions=0;
+
+
+long long int nrOfSolutions=0;
 int size=0;
 
 void setQueen(int queens[], int row, int col, int id) {
@@ -31,10 +33,21 @@ void setQueen(int queens[], int row, int col, int id) {
 
 void solve() {
     int myid=0 ;
-        for(int i=0; i<size; i++) {
-        setQueen(new int[size], 0, i, myid);
+		if(size%2==0){
+			  for(int i=0; i<size/2; i++) {
+        	setQueen(new int[size], 0, i, myid);
         }
+				nrOfSolutions *= 2;
+		}
+		else{
+			for(int i=0; i<(size/2); i++) {
+        setQueen(new int[size], 0, i, myid);
+			}
+			nrOfSolutions *= 2;
+			setQueen(new int[size], 0, (size)/2, myid);
+		}
 }
+
 
 int main(int argc, char*argv[]) {
 

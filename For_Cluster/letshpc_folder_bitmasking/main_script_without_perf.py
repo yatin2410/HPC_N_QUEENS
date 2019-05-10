@@ -38,45 +38,6 @@ run.py problem_name approach_name serial_executable parallel_executable runs log
 """
 
 
-def run_perf(log_directory, n, p, serial_executable, parallel_executable, input_file, problem_name, approach_name):
-    perf1 = None
-    perf2 = None
-    perf3 = None
-    perf4 = None    
-    clear_cache = "sudo /sbin/sysctl vm.drop_caches=3"
-
-    if parallel_executable is None:
-        perf1 = "sudo perf stat -o %s --append -e cycles,instructions,cache-references,cache-misses,bus-cycles -a %s %s %s %s >> %s" % (log_directory + "perf_logs/serial_" + str(n) + "_0.log.1",serial_executable, str(n), "0", input_file, log_directory + problem_name + "_" + approach_name + ".logs")
-
-        perf2 = "sudo perf stat -o %s --append -e L1-dcache-loads,L1-dcache-load-misses,L1-dcache-stores,dTLB-loads,dTLB-load-misses,dTLB-prefetch-misses -a %s %s %s %s >> %s" % (log_directory + "perf_logs/serial_" + str(n) + "_0.log.2",serial_executable, str(n), "0", input_file, log_directory + problem_name + "_" + approach_name + ".logs")
-
-        perf3 = "sudo perf stat -o %s --append -e LLC-loads,LLC-load-misses,LLC-stores,LLC-prefetches -a %s %s %s %s >> %s" % (log_directory + "perf_logs/serial_" + str(n) + "_0.log.3",serial_executable, str(n), "0", input_file, log_directory + problem_name + "_" + approach_name + ".logs")
-
-        perf4 = "sudo perf stat -o %s --append -e branches,branch-misses,context-switches,cpu-migrations,page-faults -a %s %s %s %s >> %s" % (log_directory + "perf_logs/serial_" + str(n) + "_0.log.4",serial_executable, str(n), "0", input_file, log_directory + problem_name + "_" + approach_name + ".logs")
-    else:
-        perf1 = "sudo perf stat -o %s --append -e cycles,instructions,cache-references,cache-misses,bus-cycles -a %s %s %s %s >> %s" % (log_directory + "perf_logs/parallel_" + str(n) + "_" + str(p) + ".log.1", parallel_executable, str(n), str(p), input_file, log_directory + problem_name + "_" + approach_name + ".logs")
-
-        perf2 = "sudo perf stat -o %s --append -e L1-dcache-loads,L1-dcache-load-misses,L1-dcache-stores,dTLB-loads,dTLB-load-misses,dTLB-prefetch-misses -a %s %s %s %s >> %s" % (log_directory + "perf_logs/parallel_" + str(n) + "_" + str(p) + ".log.2", parallel_executable, str(n), str(p), input_file, log_directory + problem_name + "_" + approach_name + ".logs")
-
-        perf3 = "sudo perf stat -o %s --append -e LLC-loads,LLC-load-misses,LLC-stores,LLC-prefetches -a %s %s %s %s >> %s" % (log_directory + "perf_logs/parallel_" + str(n) + "_" + str(p) + ".log.3", parallel_executable, str(n), str(p), input_file, log_directory + problem_name + "_" + approach_name + ".logs")
-        perf4 = "sudo perf stat -o %s --append -e branches,branch-misses,context-switches,cpu-migrations,page-faults -a %s %s %s %s >> %s" % (log_directory + "perf_logs/parallel_" + str(n) + "_" + str(p) + ".log.4", parallel_executable, str(n), str(p), input_file, log_directory + problem_name + "_" + approach_name + ".logs")
-        
-
-
-    logger.info("Perf Command 1: %s " %(perf1))
-    logger.info("Perf Command 2: %s " %(perf2))
-    logger.info("Perf Command 3: %s " %(perf3))
-    logger.info("Perf Command 4: %s " %(perf4))
-    #subprocess.call(clear_cache, shell = True)
-    subprocess.call(perf1, shell = True)
-    #subprocess.call(clear_cache, shell = True)
-    subprocess.call(perf2, shell = True)
-    #subprocess.call(clear_cache, shell = True)
-    subprocess.call(perf3, shell = True)
-    #subprocess.call(clear_cache, shell = True)
-    subprocess.call(perf4, shell = True)
-
-
 def foobar(l):
     if len(l) < 10:
         print USAGE
@@ -87,6 +48,7 @@ def foobar(l):
     serial_executable = l[3]
     parallel_executable = l[4]
     runs = int(l[5])
+    compiler_to_use = l[-1]
 
     logger.info("-"*80)
     logger.info("Problem Name : %s" % (problem_name))
@@ -127,18 +89,6 @@ def foobar(l):
             + "cpuinfo.txt", shell=True)
     
 
-    logger.info("Creating Empty files for perf data")
-    for i in maps.problem_size[problem_name]:
-        for p in maps.processor_range:
-            subprocess.call("touch %s" % (log_directory + "perf_logs/parallel_" + \
-                    str(i) + "_" + str(p) + ".log.1"), shell = True)
-            subprocess.call("touch %s" % (log_directory + "perf_logs/parallel_" + \
-                    str(i) + "_" + str(p) + ".log.2"), shell = True)
-            subprocess.call("touch %s" % (log_directory + "perf_logs/parallel_" + \
-                    str(i) + "_" + str(p) + ".log.3"), shell = True)
-            subprocess.call("touch %s" % (log_directory + "perf_logs/parallel_" + \
-                    str(i) + "_" + str(p) + ".log.4"), shell = True)
-
 
     for run in range(runs):
         os.chdir(l[9])
@@ -148,32 +98,43 @@ def foobar(l):
         for n in maps.problem_size[problem_name]:
             print('Problem Size:', n)
             input_file = input_directory+problem_name+'_'+str(n)+'_input.txt'
-            logger.info("Running the Command : " + serial_executable
-                            + " " + str(n)
-                            + " " + str(0)  # p=0 for serial code.
-                            + " " + input_file
-                            + " >> " + log_directory
-                            + problem_name + "_" + approach_name
-                            + ".logs") 
 
-            subprocess.call(serial_executable
-                            + " " + str(n)
-                            + " " + str(0)  # p=0 for serial code.
-                            + " " + input_file
-                            + " >> " + log_directory
-                            + problem_name + "_" + approach_name
-                            + ".logs",
-                            shell=True)
-            
-            perf_command = "sudo perf stat -o %s --append \
--e L1-dcache-loads,L1-dcache-load-misses,L1-dcache-stores,dTLB-loads,dTLB-load-misses,dTLB-prefetch-misses,LLC-loads,LLC-load-misses,LLC-stores,LLC-prefetches,branches,branch-misses,context-switches,cycles,instructions,cache-references,cache-misses,bus-cycles,cpu-migrations,page-faults -a %s %s %s %s" % (log_directory + "perf_logs/serial_" + str(n) + "_0.log",serial_executable, str(n), "0", input_file)
-            perf_command = "sudo perf stat -o %s --append \
--e cycles,instructions,cache-references,cache-misses,bus-cycles,cpu-migrations,page-faults,L1-dcache-loads,L1-dcache-load-misses,L1-dcache-stores,LLC-loads,LLC-load-misses,LLC-stores,LLC-prefetches,branches,branch-misses,context-switches -a %s %s %s %s" % (log_directory + "perf_logs/serial_" + str(n) + "_0.log",serial_executable, str(n), "0", input_file)
+            if compiler_to_use == 'openmp':
+                logger.info("Running the Command : " + serial_executable
+                                + " " + str(n)
+                                + " " + str(0)  # p=0 for serial code.                           
+    							+ " " + input_file
+                                + " >> " + log_directory
+                                + problem_name + "_" + approach_name
+                                + ".logs") 
 
-            #logger.info("Running the Perf Commands Commands")
-            #run_perf(log_directory, n, "0", serial_executable, None, input_file, problem_name, approach_name)
-            
-             
+                subprocess.call(serial_executable
+                                + " " + str(n)
+                                + " " + str(0)  # p=0 for serial code.                          
+    							+ " " + input_file
+                                + " >> " + log_directory
+                                + problem_name + "_" + approach_name
+                                + ".logs",
+                                shell=True)
+
+            elif compiler_to_use == 'mpi':
+                logger.info("Running the Command : mpirun -np 1 " + serial_executable
+                                + " " + str(n)
+                                + " " + str(0)  # p=0 for serial code.                           
+                                + " " + input_file
+                                + " >> " + log_directory
+                                + problem_name + "_" + approach_name
+                                + ".logs") 
+
+                subprocess.call("mpirun -np 1 " + serial_executable
+                                + " " + str(n)
+                                + " " + str(0)  # p=0 for serial code.                          
+                                + " " + input_file
+                                + " >> " + log_directory
+                                + problem_name + "_" + approach_name
+                                + ".logs",
+                                shell=True)
+     
             
             
         line(80)
@@ -186,34 +147,46 @@ def foobar(l):
                 os.chdir(l[9])
                 input_file = input_directory+problem_name+'_'+str(n)+'_input.txt'
                 print('Problem Size:', n)
-                logger.info("Running the Command : " + parallel_executable
-                                + " " + str(n)
-                                + " " + str(p)
-                                + " " + input_file
-                                + " >> " + log_directory
-                                + problem_name + "_" + approach_name
-                                + ".logs") 
 
-                subprocess.call(parallel_executable
-                                + " " + str(n)
-                                + " " + str(p)
-                                + " " + input_file
-                                + " >> " + log_directory
-                                + problem_name + "_" + approach_name
-                                + ".logs",
-                                shell=True)
+                if compiler_to_use == 'openmp':
+                    logger.info("Running the Command : " + parallel_executable
+                                    + " " + str(n)
+                                    + " " + str(p)
+                                    + " " + input_file
+                                    + " >> " + log_directory
+                                    + problem_name + "_" + approach_name
+                                    + ".logs") 
 
-                perf_command = "sudo perf stat -o %s --append \-e L1-dcache-loads,L1-dcache-load-misses,L1-dcache-stores,dTLB-loads,dTLB-load-misses,dTLB-prefetch-misses,LLC-loads,LLC-load-misses,LLC-stores,LLC-prefetches,branches,branch-misses,context-switches,cycles,instructions,cache-references,cache-misses,bus-cycles,cpu-migrations,page-faults -a %s %s %s %s" % (log_directory + "perf_logs/parallel_" + str(n) + "_" + str(p) + ".log", parallel_executable, str(n), str(p), input_file)
+                    subprocess.call(parallel_executable
+                                    + " " + str(n)
+                                    + " " + str(p)
+                                    + " " + input_file
+                                    + " >> " + log_directory
+                                    + problem_name + "_" + approach_name
+                                    + ".logs",
+                                    shell=True)
 
-                #logger.info("Running the perf commands")
-                #run_perf(log_directory, n, p, None, parallel_executable, input_file, problem_name, approach_name)
-            # Look into flushing memory
+                elif compiler_to_use == 'mpi':
+                    logger.info("Running the Command : mpirun -np " + str(p) + " " + parallel_executable
+                                    + " " + str(n)
+                                    + " " + str(p)
+                                    + " " + input_file
+                                    + " >> " + log_directory
+                                    + problem_name + "_" + approach_name
+                                    + ".logs") 
+
+                    subprocess.call("mpirun -np " + str(p) + " " + parallel_executable
+                                    + " " + str(n)
+                                    + " " + str(p)
+                                    + " " + input_file
+                                    + " >> " + log_directory
+                                    + problem_name + "_" + approach_name
+                                    + ".logs",
+                                    shell=True)
+
+
         line(80)
 
-
-    #print('Comparing results')
-    # subprocess.call('python3 compare.py '+problem_name, shell=True)
-    # line(80)
     print(os.getcwd())
 
 
@@ -223,15 +196,51 @@ def foobar(l):
 
 
 
+base = os.getcwd()
+all_files = os.listdir(base)
 
+inp = None
+while True:
+    if 'codes_run_file' in all_files:
+        inp = raw_input("Do you want to reuse the results of previous run? (y/n): ").lower()
+        if inp == 'y':
+            break
+        elif inp == 'n':
+            os.remove(base + '/codes_run_file')
+            break
+        else:
+            print "Invalid input. Try again."
+
+    else:
+        break
+
+while True:
+    compiler_to_use = raw_input("Which parallel framework would you be using? (openmp/mpi): ").lower()
+
+    if compiler_to_use == 'mpi' or compiler_to_use == 'openmp':
+        break
+    else:
+        print("Incorrect input. Try again.")
+
+
+while True:
+    try:
+        runs = int(raw_input("Enter the number of times you want the code to run (recommended: at least 10 runs): "))
+        if runs <= 0:  # if not a positive int print message and ask for input again
+            print("Input must be a positive integer, try again!")
+            continue
+    except ValueError as ve:
+        print("That's not an int! Try again!")
+        continue
+    else:
+        print('the number of runs is ' + str(runs))    
+        break 
 
 all_inputs = os.getcwd() + '/all_input/'
 base = os.getcwd() + '/all_codes/'
 starting_point = os.getcwd()
 all_codes = os.listdir(base)
 
-runs = int(sys.argv[1])
-print('the number of runs is ' + str(runs))
 count = 0
 try:
     os.remove(base + "progress.txt")
@@ -263,7 +272,7 @@ else:
 print "The following code will be run now", code_to_run
 
 if code_to_run is None:
-    print "All the codes have already been executed. You can run the collect data script now"
+    print "All the codes have already been executed."# + " You can run the collect data script now"
     sys.exit(1)
 
 for each_code in [code_to_run]:
@@ -289,29 +298,49 @@ for each_code in [code_to_run]:
                 serial = each_file
             elif 'parallel' in each_file.lower():
                 parallel = each_file
-    compiler = "gcc "
+    
+    if compiler_to_use == 'mpi':
+        compiler = "mpicc "
+    elif compiler_to_use == 'openmp':
+        compiler = "gcc "
+
     if ".cpp" in parallel:
-        compiler = "g++ "
+        if compiler_to_use == "mpi":
+            compiler = "mpiCC "
+        elif compiler_to_use == "openmp":
+            compiler = "g++ "
+
     print serial, parallel
-    #raw_input()    
+
     if 'logs' not in all_files:
         os.mkdir(base + each_code + "/logs")
-        os.mkdir(base + each_code + "/logs/perf_logs")
         os.mkdir(base + each_code + "/output")    
-    #raw_input()
-    subprocess.call(compiler
+
+
+    if compiler_to_use == 'openmp':
+        subprocess.call(compiler
                 + base + each_code + "/" + parallel
                 + " -fopenmp -lm -w -o "
                 +  base + each_code + "/parr", shell=True)
-    subprocess.call(compiler
+        subprocess.call(compiler
                 + base + each_code + "/" + serial
                 + " -fopenmp -lm -w -o "
                 +  base + each_code + "/ser", shell=True)
 
+    elif compiler_to_use == 'mpi':
+        subprocess.call(compiler
+                + base + each_code + "/" + parallel
+                + " -lm -w -o "
+                +  base + each_code + "/parr", shell=True)
+        subprocess.call(compiler
+                + base + each_code + "/" + serial
+                + " -lm -w -o "
+                +  base + each_code + "/ser", shell=True)        
+
     print serial,parallel
     #raw_input()
     foobar(['run.py', problem, approach, base + each_code + "/ser", base + each_code + "/parr", int(runs), base + each_code + "/logs/", \
-        base + each_code + "/output/",  all_inputs, base + each_code + "/"])
+        base + each_code + "/output/",  all_inputs, base + each_code + "/", compiler_to_use])
 
     f = open(base + "progress.txt", "a")
     f.write(str(time.time()) + " " + str(count) + " " + str(each_code)+"\n")

@@ -29,68 +29,108 @@ struct timespec diff(struct timespec start, struct timespec end){
 //-----------------------------ALGO STARTS------------------------//
 
 
-int nrOfSolutions=0;
+long long int nrOfSolutions=0;
 int size=0;
-int LEVEL = 4;
-#define N size
+int nrOdd = 0;
+long long int arr[50];
+int LEVEL = 1;
 
-bool stillLegal(int *board,int row,int col){
-    for(int i=0; i<row; i++) {
+void setQueen(int queens[], int row, int col, int id, int col1) {
+  for(int i=0; i<row; i++) {
     // vertical attacks
-    if (board[i]==col) {
-      return false;
+    if (queens[i]==col) {
+      return;
     }
     // diagonal attacks
-    if (abs(board[i]-col) == (row-i) ) {
-      return false;
+    if (abs(queens[i]-col) == (row-i) ) {
+      return;
     }
   }
-    return true;
-}
 
-void NQueens(int *board, int row)
-{
-  if (row == N) 
-   #pragma omp critical
-    nrOfSolutions++;
+  queens[row]=col;
+  if(row==size-1 && col1!=(size/2)) {
+        arr[omp_get_thread_num()]++;
+  }
+  else if(row==size-1 && col1==(size/2)){
+        nrOdd++;
+  }
   else {
-    for (int i = 0; i < N; ++i) {
-      board[row] = i;
-      if (stillLegal(board, row,i))
-        NQueens(board, row+1);
+    for(int i=0; i<size; i++) {
+      setQueen(queens, row+1, i, id,col1);
     }
   }
-  return;
 }
 
-void NQueensD3(int *board, int row)
-{
-  for (int i = 0; i < N; ++i) {
-    board[row] = i;
-    if (stillLegal(board, row,i)){
-      if (row < LEVEL && N>1 && N<=7) {
-        int *bnew = new int[N];
-        for (int j = 0; j <= row; ++j) bnew[j] = board[j];
-        #pragma omp task 
-            NQueensD3(bnew, row+1);  // generate a task
-      }
-      else
-        NQueens(board, row+1);   // no more tasks, search from here
+void setQueen1(int queens[], int row, int col, int id, int col1) {
+  for(int i=0; i<row; i++) {
+    // vertical attacks
+    if (queens[i]==col) {
+      return;
+    }
+    // diagonal attacks
+    if (abs(queens[i]-col) == (row-i) ) {
+      return;
     }
   }
-  return;
+
+  queens[row]=col;
+  if(row==size-1 && col1!=(size/2)) {
+        arr[omp_get_thread_num()]++;
+  }
+  else if(row==size-1 && col1==(size/2)){
+        nrOdd++;
+  }
+  else {
+    if(row<=LEVEL){
+      for(int i=0; i<size; i++) {
+        #pragma omp parallel
+        #pragma omp single
+        {
+        #pragma omp task
+          setQueen1(queens, row+1, i, id,col1);
+        }
+      }
+    }
+    else{
+        for(int i=0; i<size; i++) {
+          setQueen1(queens, row+1, i, id,col1);
+      }
+    }
+  }
 }
 
 void solve(int p) {
     int myid=0 ;
     omp_set_num_threads(p);
-    #pragma omp parallel
-    #pragma omp single
-    {
-        NQueensD3(new int[size],0);        
-    }
-}
+    if(size%2==0){
+        #pragma omp parallel
+        #pragma omp single
+        {
+            for(int i=0; i<(size/2)-1; i++) {
+            #pragma omp task
+              setQueen(new int[size], 0, i, myid,i);
+            }     
+            for(int i=(size/2)-1;i<(size/2);i++){
+              setQueen1(new int[size], 0, i, myid,i);
+            }
+        }
 
+    }
+    else{
+        #pragma omp parallel
+        #pragma omp single
+        {
+            for(int i=0; i<(size/2); i++) {
+            #pragma omp task
+              setQueen(new int[size], 0, i, myid,i);
+            }     
+            for(int i=(size/2);i<=(size/2);i++){
+              setQueen1(new int[size], 0, i, myid,i);
+            }            
+        }
+    }
+
+}
 
 
 //-----------------------------ALGO ENDS------------------------//
@@ -108,7 +148,7 @@ int main(int argc, char* argv[])
 	int n=atoi(argv[1]);
 	int p=atoi(argv[2]);
 	char *problem_name="nqueen";
-	char *approach_name="design2";
+	char *approach_name="design1";
 	FILE* outputFile;
 	//inputFile = fopen(argv[3],"r");
 
@@ -117,13 +157,31 @@ int main(int argc, char* argv[])
 
 	/*----------------------Core algorithm starts here----------------------------------------------*/
 
+    for(int i=0;i<50;i++){
+      arr[i] = 0;
+    }
+
 	clock_gettime(CLK, &start_alg);	/* Start the algo timer */
 	size = n;
-    solve(p);
+	solve(p);
 
 	/*----------------------Core algorithm finished--------------------------------------------------*/
 	
 	clock_gettime(CLK, &end_alg);	/* End the algo timer */
+	long long int ans = 0;
+    int mn = -1;
+    for(int i=0;i<50;i++){
+      if(arr[i]!=0){
+        mn = max(mn,i);
+      }
+      nrOfSolutions += arr[i];
+    }
+    if(size%2==0){
+        ans = nrOfSolutions*2;
+    }
+    else{
+      ans = (nrOfSolutions*2)+nrOdd;
+    }
 	/* Ensure that only the algorithm is present between these two
 	   timers. Further, the whole algorithm should be present. */
 

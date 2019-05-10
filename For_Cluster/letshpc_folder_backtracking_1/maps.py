@@ -35,7 +35,7 @@ approaches = {'trapezoidal': ['reduction', 'critical', 'private'],
               'filter': ['double_tree_prefix',
                          'data_segmenting_prefix',
                          'linked_list'],
-               'nqueen':['design1']}
+               'nqueen':['design1','design2','design3']}
 
 problem_size = {'trapezoidal': [10**x for x in range(1, 9)],
                 'vector': [10**x for x in range(1, 9)],
@@ -48,9 +48,9 @@ problem_size = {'trapezoidal': [10**x for x in range(1, 9)],
                 'prefix_sum': [10**x for x in range(1, 9)],
                 'reduction': [10**x for x in range(1, 9)] + [int(0.5*10**x) for x in range(5,9)] ,
                 'filter': [10**x for x in range(1, 9)],
-                'nqueen':[x for x in range(4,14)]}
+                'nqueen':[x for x in range(4,16)]}
 
-processor_range = range(1, 9)
+processor_range = range(1, 7)
 
 """
 problem_size = {'trapezoidal': [10**x for x in range(1, 4)],

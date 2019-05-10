@@ -30,8 +30,6 @@ struct timespec diff(struct timespec start, struct timespec end){
 
 int size = 4;
 
-
-
 int dfs(int lv, int row, int dia1, int dia2, int mask) {
     if (row == mask)
         return 1;
